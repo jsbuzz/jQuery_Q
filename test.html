@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>$.Q test</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
+	<script src="jquery.Q.js" ></script>
+	<script src="test.filesystem.js" ></script>
+	<script>
+		with($.Q) {
+		    $.when(
+		        someFrom({
+		            readme  : not(fileSystem.getFile('readme.md')),
+		            licence : not(fileSystem.getFile('licence.txt')),
+		            author  : not(fileSystem.getFile('author.txt'))
+		        })
+		    ).done(function(missing) {
+		        if(missing.readme) {
+		            fileSystem.createFile('readme.md', 'This is a simple test');
+		        }
+		        if(missing.licence) {
+		            fileSystem.createFile('licence.txt', 'GPL 2.0');
+		        }
+		        if(missing.author) {
+		            fileSystem.createFile('author.txt', 'MySelf');
+		        }
+		    });
+
+		    /**/
+		    $.when(
+		        fileSystem.getFile('readme.md').then(use(wait, 10)).then(use(fileSystem.read)),
+		        wait(40).then($.Q(fileSystem.getFile, 'author.txt')).then(use(fileSystem.read)),
+		        anyway(
+		            fileSystem.getFile('licence.txt').then(use(fileSystem.read))
+		        ).or('no licence')
+		    ).done(function(readme, author, licence) {
+		        console.log('---------------------------------------');
+		        console.log('Project is ready to use with $.Q.anyway');
+		        console.log('---------------------------------------');
+		        console.log('About: ', readme);
+		        console.log('Licence: ', licence);
+		        console.log('Author: ', author);
+		        console.log(' ');
+		    }).fail(function(err) {
+		        console.log('Essentials missing!', err);
+		    });
+		    
+		    /**/
+		    $.when(
+		        someFrom({
+		            readme  : fileSystem.getFile('readme.md').then(bound(fileSystem, fileSystem.read)),
+		            licence : fileSystem.getFile('licence.txt').then(use(fileSystem.read)),
+		            author  : fileSystem.getFile('author.txt').then(use(fileSystem.read))
+		        })
+		    ).done(function(project) {
+		        console.log('-----------------------------------------');
+		        console.log('Project is ready to use with $.Q.someFrom');
+		        console.log('-----------------------------------------');
+		        console.log('About: ', project.readme || 'no readme');
+		        console.log('Licence: ', project.licence || 'no licence');
+		        console.log('Author: ', project.author || 'anonymus');
+		        console.log(' ');
+		    }).fail(function(err) {
+		        console.log('Essentials missing!', err);
+		    });
+		}
+		/**
+		$.when(
+		    $.Q.not(test(10, 1, 1)),
+		    $.Q.anyway(test(20, 1, 1)).or('works')
+		).done(function(r1, r2) {
+		    console.log('done!', r1, r2);
+		}).fail(function(err) {
+		    console.log('failed!', err);
+		});
+		/**/
+		/**
+		$.when(
+		    $.Q.anyOf(
+		        test(200, 1),
+		        test(20, 2, 1), 
+		        test(10, 3)
+		    ),
+		    $.Q.someFrom({
+		        one: test(200, 1),
+		        two: test(20, 2, 1), 
+		        three: test(10, 3)
+		    })
+		).done(function(anyof, result) {
+		    console.log('done!', anyof, result);
+		}).fail(function(err) {
+		    console.log('failed!', err);
+		});
+		/**/
+		/**
+		test(200, 1)
+		.then($.Q.anyway($.Q.use(test, 100, 2), false))
+		.then($.Q.use(test, 100, 3))
+		    .done(function(a) {console.log('done', a)})
+		    .fail(function(a) {console.log('fail', a)})
+		;
+		/**/
+	</script>
+</head>
+<body>
+	Check the console.
+</body>
+</html>
