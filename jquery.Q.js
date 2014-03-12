@@ -23,13 +23,15 @@
      * 
      */
     $.Q.bound = function(_this, fn) {
+        var args = Array.prototype.slice.call(arguments, 2);
         fn = (typeof(fn)==='function' ? fn : _this[fn]);
 
-        return function() {
-            var args = Array.prototype.slice.call(arguments, 0);
+        return function(transparency) {
+            args.push(transparency);
             return fn.apply(_this, args);
         };
     };
+
 
     /**
      * The same as $.Q but it will forward the result of the last chain step as parameter to the function
