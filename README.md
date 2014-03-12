@@ -1,4 +1,4 @@
-jQuery_Q
+jQuery.Q
 ========
 
 Simple helper for handling promises in jQuery
