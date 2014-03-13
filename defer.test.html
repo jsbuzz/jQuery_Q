@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>$.Q test</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
+	<script src="jquery.Q.js" ></script>
+	<script src="test.filesystem.js" ></script>
+	<script>
+		function somethingAsync(rarity, success) {
+			setTimeout(
+				function() {
+
+					if(Math.random()*10 > rarity) {
+						success(rarity);
+					} else {
+						console.log(' [failed with ' + rarity + ']');
+						//error(rarity);
+					}
+				},100
+			)
+		}
+
+		$.when(
+			$.Q.someOf(
+				$.Q.defer(somethingAsync, 3),
+				$.Q.defer(somethingAsync, 7),
+				$.Q.defer({
+					fn: somethingAsync, 
+					params: [9],
+					timeout: 400
+				})
+			)
+		).done(function(results) {
+			console.log('done', results);
+		}).fail(function(errors) {
+			console.log('all failed', errors);
+		});
+	</script>
+</head>
+<body>
+	Check the console.
+</body>
+</html>
