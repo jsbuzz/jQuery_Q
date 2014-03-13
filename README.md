@@ -3,20 +3,22 @@ jQuery.Q
 
 Simple helper for handling promises in jQuery
 
-    $.when(
-        $.Q.someFrom({
-            readme  : fileSystem.getFile('readme.md').then($.Q.use(fileSystem.read)),
-            licence : fileSystem.getFile('licence.txt').then($.Q.use(fileSystem.read)),
-            author  : fileSystem.getFile('author.txt').then($.Q.use(fileSystem.read))
-        })
-    ).done(function(project) { // some information is present
-        console.log('-----------------------------------------');
-        console.log('Project is ready to use with $.Q.someFrom');
-        console.log('-----------------------------------------');
-        console.log('About: ', project.readme || 'no readme');
-        console.log('Licence: ', project.licence || 'no licence');
-        console.log('Author: ', project.author || 'anonymus');
-        console.log(' ');
-    }).fail(function(err) { // none of the files exist
-        console.log('Essentials missing!', err);
-    });
+	$.when(
+	    $.Q.pipe(
+	    	$.Q.wait(500),
+	    	$.Q($.Q.anyOf, // if file doesn't exist, create it
+	    		$.Q($.Q.pipe,
+	            	$.Q.not($.Q(fileSystem.getFile, 'readme.md')),
+	            	$.Q(fileSystem.createFile, 'readme.md', 'This is a simple test')
+	            ),// otherwise get it
+	        	$.Q(fileSystem.getFile, 'readme.md')
+	        ),
+	    	$.Q.use($.Q.wait, 500), // testing transparency of $.Q.wait
+	        $.Q.use(fileSystem.read)
+	    ).progress(function(prg) {console.log('pipe', parseInt(prg.pct) + '%')})
+	).done(function(pipe) {
+		console.log('done:', pipe);
+	}).fail(function(err) {
+		console.log('failed:', err);
+	});
+
