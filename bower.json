@@ -1,0 +1,7 @@
+{
+  "name": "jQuery_Q",
+  "version": "1.0.0",
+  "dependencies": {
+    "jquery": "~1.8.1"
+  }
+}
