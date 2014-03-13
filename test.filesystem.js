@@ -13,7 +13,7 @@ fileSystem.getFile = function(name) {
     var dfd = new $.Deferred();
     setTimeout(
         function() {
-            console.log('+ checking: ' + name);
+            console.log('+ getting: ' + name);
             if(typeof(fileSystem[name]) !== 'string') {
                 dfd.reject('File not found! [' + name + ']');
             } else {
@@ -34,7 +34,7 @@ fileSystem.createFile = function(name, contents) {
             } else {
                 fileSystem[name] = contents;
                 console.log('+ created: ' + name);
-                dfd.resolve(true);
+                dfd.resolve(new File(name));
             }
         },
         rand(10)

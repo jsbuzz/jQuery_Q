@@ -16,7 +16,6 @@
 
     /**
      * Same as $.Q but the first parameter is the host object of the function.
-     * The first argument is the function to call, all the others are used as its arguments.
      * 
      * @param {Object} _this
      * @param {Function} fn 
@@ -26,15 +25,15 @@
         var args = Array.prototype.slice.call(arguments, 2);
         fn = (typeof(fn)==='function' ? fn : _this[fn]);
 
-        return function(transparency) {
-            args.push(transparency);
+        return function(_transparent_) {
+            args.push(_transparent_);
             return fn.apply(_this, args);
         };
     };
 
 
     /**
-     * The same as $.Q but it will forward the result of the last chain step as parameter to the function
+     * The same as $.Q but it will forward the result of the last operation to the function
      * 
      * @param {Function} fn 
      * 
@@ -45,8 +44,8 @@
     };
 
     /**
-     * Modifier - always resolves. If the given promise resolves it forwards the results, on failure it uses
-     * the second parameter as a fallback value.
+     * Modifier - always resolves. If the given promise resolves it forwards the results, 
+     * on failure it uses the second parameter as a fallback value.
      * Can be used with a second paramtere or with the extension .or(...)
      *
      *    $.when(
@@ -108,11 +107,20 @@
      */
     $.Q.anyOf = function(promises) {
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
-        var dfd = new $.Deferred;
+        var dfd = new $.Deferred,
+            errors = [];
 
         promises.forEach(function(promise) {
+            if(typeof(promise) === 'function') {
+                promise = promise();
+            }
             promise.done(function(result) {
                 dfd.resolve(result);
+            }).fail(function(error) {
+                errors.push(error);
+                if(errors.length === promises.length) {
+                    dfd.reject(errors);
+                }
             });
         });
 
@@ -130,9 +138,14 @@
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
         var returned = [],
             results = [],
-            dfd = new $.Deferred;
+            progress = 0,
+            dfd = new $.Deferred,
+            errors = [];
 
         promises.forEach(function(promise, i) {
+            if(typeof(promise) === 'function') {
+                promise = promise();
+            }
             returned[i] = false;
             results[i] = undefined;
             promise.done(function(result) {
@@ -140,21 +153,32 @@
                 results[i] = result;
                 for(var j=0; j < returned.length; j++) {
                     if(!returned[j]) {
+                        dfd.notify({
+                            pct: 100 * (++progress) / promises.length,
+                            msg : '',
+                            results: results
+                        });
                         return false;
                     }
                 }
                 dfd.resolve(results);
-            }).fail(function() {
+            }).fail(function(error) {
                 returned[i] = true;
+                errors.push(error);
                 for(var j=0; j < returned.length; j++) {
                     if(!returned[j]) {
+                        dfd.notify({
+                            pct: 100 * (++progress) / promises.length,
+                            msg : '',
+                            results: results
+                        });
                         return false;
                     }
                 }
-                if(results.length) {
+                if(errors.length < results.length) {
                     dfd.resolve(results);
                 } else {
-                    dfd.reject();
+                    dfd.reject(errors);
                 }
             });
         });
@@ -176,6 +200,7 @@
             returned = [],
             map = [],
             results = false,
+            progress = 0,
             dfd = new $.Deferred;
 
         var index = 0;
@@ -198,6 +223,11 @@
                 results[map[i]] = result;
                 for(var j=0; j < returned.length; j++) {
                     if(!returned[j]) {
+                        dfd.notify({
+                            pct: 100 * (++progress) / promises.length,
+                            msg : '',
+                            results: results
+                        });
                         return false;
                     }
                 }
@@ -206,6 +236,11 @@
                 returned[i] = true;
                 for(var j=0; j < returned.length; j++) {
                     if(!returned[j]) {
+                        dfd.notify({
+                            pct: 100 * (++progress) / promises.length,
+                            msg : '',
+                            results: results
+                        });
                         return false;
                     }
                 }
@@ -226,17 +261,110 @@
      * @param {Int} timeout
      * 
      */
-    $.Q.wait = function(timeout, transparency) {
+    $.Q.wait = function(timeout, _transparent_) {
         var dfd = new $.Deferred();
 
         setTimeout(
             function(){
-                dfd.resolve(transparency);
+                dfd.resolve(_transparent_);
             },
             timeout
         );
 
         return dfd.promise();
     };
+
+    /**
+     * Pipe
+     * 
+     */
+    $.Q.pipe = function() {
+        var steps = Array.prototype.slice.call(arguments, 0),
+            lastStep = false,
+            progress = 0,
+            dfd = new $.Deferred;
+
+        var asPromise = function(step, r) {return (typeof(step) === 'function' ? step(r) : step);},
+            abort = function(err) {dfd.reject(err)},
+            channel = function(result) {
+                ++progress;
+
+                // if we are done
+                if(progress >= steps.length) {
+                    dfd.resolve(result);
+                    return true;
+                }
+
+                // otherwise let's call the next step
+                $.when(
+                    asPromise(steps[progress], result)
+                ).done(channel).fail(abort);
+
+                // ond send the progress to the deferred
+                dfd.notify({
+                    pct: 100 * progress / steps.length,
+                    msg : '',
+                    result: result
+                });
+            };
+
+        // call the first step
+        $.when(
+            asPromise(steps[0])
+        ).done(channel).fail(abort);
+
+        return dfd.promise();
+    };
+
+    /**
+     * defer
+     * 
+     */
+    $.Q.defer = function(fn) {
+        var args = Array.prototype.slice.call(arguments, 1),
+            dfd = new $.Deferred,
+            defaultTimeout = 500,
+            scope = fn;
+
+        if(!args.length && typeof(fn) === 'object') {
+            var options = fn;
+            args = options.params || [];
+            defaultTimeout = options.timeout || defaultTimeout;
+            scope = options.scope || options;
+            fn = options.fn;
+        }
+
+        // add success callback
+        if(fn.length > args.length) {
+            args.push(function(result) {
+                dfd.resolve(result);
+            });
+        } else {
+            throw new Error("No success callback for method?");
+        }
+        
+        // add error callback
+        if(fn.length > args.length) {
+            args.push(function(err) {
+                dfd.reject(err);
+            });
+        } else {
+            setTimeout(function() {dfd.reject('timeout error');}, defaultTimeout);
+        }
+
+        // arguments should be fulfilled
+        if(fn.length > args.length) {
+            throw new Error("Invalid argument list");
+        }
+
+
+        try {
+            fn.apply(scope, args);
+        } catch(error) {
+            dfd.reject(error);
+        }
+
+        return dfd.promise();
+    }
 
 })(jQuery);

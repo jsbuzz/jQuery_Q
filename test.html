@@ -4,67 +4,96 @@
 	<meta charset="utf-8">
 	<title>$.Q test</title>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
 	<script src="jquery.Q.js" ></script>
 	<script src="test.filesystem.js" ></script>
 	<script>
-		with($.Q) {
-		    $.when(
-		        someFrom({
-		            readme  : not(fileSystem.getFile('readme.md')),
-		            licence : not(fileSystem.getFile('licence.txt')),
-		            author  : not(fileSystem.getFile('author.txt'))
-		        })
-		    ).done(function(missing) {
-		        if(missing.readme) {
-		            fileSystem.createFile('readme.md', 'This is a simple test');
-		        }
-		        if(missing.licence) {
-		            fileSystem.createFile('licence.txt', 'GPL 2.0');
-		        }
-		        if(missing.author) {
-		            fileSystem.createFile('author.txt', 'MySelf');
-		        }
-		    });
+		var _Q = $.Q;
 
-		    /**/
-		    $.when(
-		        fileSystem.getFile('readme.md').then(use(wait, 10)).then(use(fileSystem.read)),
-		        wait(40).then($.Q(fileSystem.getFile, 'author.txt')).then(use(fileSystem.read)),
-		        anyway(
-		            fileSystem.getFile('licence.txt').then(use(fileSystem.read))
-		        ).or('no licence')
-		    ).done(function(readme, author, licence) {
-		        console.log('---------------------------------------');
-		        console.log('Project is ready to use with $.Q.anyway');
-		        console.log('---------------------------------------');
-		        console.log('About: ', readme);
-		        console.log('Licence: ', licence);
-		        console.log('Author: ', author);
-		        console.log(' ');
-		    }).fail(function(err) {
-		        console.log('Essentials missing!', err);
-		    });
-		    
-		    /**/
-		    $.when(
-		        someFrom({
-		            readme  : fileSystem.getFile('readme.md').then(bound(fileSystem, fileSystem.read)),
-		            licence : fileSystem.getFile('licence.txt').then(use(fileSystem.read)),
-		            author  : fileSystem.getFile('author.txt').then(use(fileSystem.read))
-		        })
-		    ).done(function(project) {
-		        console.log('-----------------------------------------');
-		        console.log('Project is ready to use with $.Q.someFrom');
-		        console.log('-----------------------------------------');
-		        console.log('About: ', project.readme || 'no readme');
-		        console.log('Licence: ', project.licence || 'no licence');
-		        console.log('Author: ', project.author || 'anonymus');
-		        console.log(' ');
-		    }).fail(function(err) {
-		        console.log('Essentials missing!', err);
-		    });
+	    $.when(
+	        $.Q.someFrom({
+	            readme  : $.Q.not(fileSystem.getFile('readme.md')),
+	            licence : $.Q.not(fileSystem.getFile('licence.txt')),
+	            author  : $.Q.not(fileSystem.getFile('author.txt'))
+	        }).progress(function(prg) {console.log('creation', parseInt(prg.pct) + '%')})
+	    ).done(function(missing) {
+	    	console.log('creation done');
+	        if(missing.readme) {
+	            fileSystem.createFile('readme.md', 'This is a simple test');
+	        }
+	        if(missing.licence) {
+	            fileSystem.createFile('licence.txt', 'GPL 2.0');
+	        }
+	        if(missing.author) {
+	            fileSystem.createFile('author.txt', 'MySelf');
+	        }
+	    });
+
+	    /**
+	    $.when(
+	        pipe(
+	        	wait(500),
+	        	$.Q(wait, 500),
+	        	$.Q(anyOf, // if file doesn't exist, create it
+	        		$.Q(pipe,
+		            	not($.Q(fileSystem.getFile, 'readme.md')),
+		            	$.Q(fileSystem.createFile, 'readme.md', 'This is a simple test')
+		            ),
+		        	$.Q(fileSystem.getFile, 'readme.md')
+	            ),
+	        	use(wait, 500),
+	            use(fileSystem.read)
+	        ).progress(function(prg) {console.log('pipe', parseInt(prg.pct) + '%')})
+	    ).done(function(pipe) {
+	    	console.log('done:', pipe);
+	    }).fail(function(err) {
+	    	console.log('failed:', err);
+	    });
+		/**/
+		function getFileContents(name) {
+			return $.Q.pipe(
+				$.Q.wait(40), 
+        		$.Q.use(fileSystem.getFile, name), 
+        		$.Q.use(fileSystem.read)
+			);
 		}
+
+	    /**/
+	    $.when(
+	    	getFileContents('readme.md'),
+	    	getFileContents('author.txt'),
+	        $.Q.anyway(getFileContents('licence.txt')).or('no licence')
+	    ).done(function(readme, author, licence) {
+	        console.log('---------------------------------------');
+	        console.log('Project is ready to use with $.Q.anyway');
+	        console.log('---------------------------------------');
+	        console.log('About: ', readme);
+	        console.log('Licence: ', licence);
+	        console.log('Author: ', author);
+	        console.log(' ');
+	    }).fail(function(err) {
+	        console.log('Essentials missing!', err);
+	    });
+	    
+	    /**/
+	    $.when(
+	        $.Q.someFrom({
+	            readme  : getFileContents('readme.md'),
+	            licence  : getFileContents('licence.txt'),
+	            author : getFileContents('author.txt')
+	        })
+	    ).done(function(project) {
+	        console.log('-----------------------------------------');
+	        console.log('Project is ready to use with $.Q.someFrom');
+	        console.log('-----------------------------------------');
+	        console.log('About: ', project.readme || 'no readme');
+	        console.log('Licence: ', project.licence || 'no licence');
+	        console.log('Author: ', project.author || 'anonymus');
+	        console.log(' ');
+	    }).fail(function(err) {
+	        console.log('All files missing!', err);
+	    });
+		/**/
 		/**
 		$.when(
 		    $.Q.not(test(10, 1, 1)),
