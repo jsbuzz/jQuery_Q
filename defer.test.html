@@ -8,7 +8,7 @@
 	<script src="jquery.Q.js" ></script>
 	<script src="test.filesystem.js" ></script>
 	<script>
-		function somethingAsync(rarity, success) {
+		function somethingAsync(rarity, success, error) {
 			setTimeout(
 				function() {
 
@@ -16,22 +16,36 @@
 						success(rarity);
 					} else {
 						console.log(' [failed with ' + rarity + ']');
-						//error(rarity);
+						error(rarity);
 					}
-				},100
+				},
+				100
 			)
 		}
 
-		$.when(
-			$.Q.someOf(
-				$.Q.defer(somethingAsync, 3),
-				$.Q.defer(somethingAsync, 7),
-				$.Q.defer({
-					fn: somethingAsync, 
-					params: [9],
-					timeout: 400
-				})
+		function stupidAsync(rarity, success) {
+			setTimeout(
+				function() {
+					if(Math.random()*10 > rarity) {
+						success(rarity);
+					} else {
+						this.log(' [+failed with ' + rarity + ']');
+					}
+				}.bind(this),
+				100
 			)
+		}
+
+		var tasks = [];
+
+		for(var i=1; i < 10; i++) {
+			tasks.push($.Q.defer(somethingAsync, i));
+		}
+		tasks.push($.Q.debug.success('no surprise'));
+		tasks.push($.Q.debug.failure('no surprise'));
+
+		$.when(
+			$.Q.someOf(tasks)
 		).done(function(results) {
 			console.log('done', results);
 		}).fail(function(errors) {

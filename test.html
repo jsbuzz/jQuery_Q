@@ -36,7 +36,7 @@
 	        	$.Q(wait, 500),
 	        	$.Q(anyOf, // if file doesn't exist, create it
 	        		$.Q(pipe,
-		            	not($.Q(fileSystem.getFile, 'readme.md')),
+		            	$.Q.not($.Q(fileSystem.getFile, 'readme.md')),
 		            	$.Q(fileSystem.createFile, 'readme.md', 'This is a simple test')
 		            ),
 		        	$.Q(fileSystem.getFile, 'readme.md')

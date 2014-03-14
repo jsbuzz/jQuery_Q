@@ -280,7 +280,6 @@
      */
     $.Q.pipe = function() {
         var steps = Array.prototype.slice.call(arguments, 0),
-            lastStep = false,
             progress = 0,
             dfd = new $.Deferred;
 
@@ -349,7 +348,7 @@
                 dfd.reject(err);
             });
         } else {
-            setTimeout(function() {dfd.reject('timeout error');}, defaultTimeout);
+            setTimeout(function() {dfd.reject('timeout');}, defaultTimeout);
         }
 
         // arguments should be fulfilled
@@ -365,6 +364,24 @@
         }
 
         return dfd.promise();
-    }
+    };
+
+    /**
+     * parallel
+     * 
+     */
+    $.Q.parallel = function(tasks) {
+        return $.when.apply($, tasks);
+    };
+
+
+    $.Q.debug = {
+        success : function(result) {
+            return new $.Deferred().resolve(result);
+        },
+        failure : function(error) {
+            return new $.Deferred().reject(error);
+        }
+    };
 
 })(jQuery);
