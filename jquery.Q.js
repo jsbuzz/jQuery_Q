@@ -376,7 +376,6 @@
             throw new Error('Invalid argument list');
         }
 
-
         try {
             options.fn.apply(options.scope, args);
         } catch(error) {
