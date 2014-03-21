@@ -5,7 +5,7 @@ Simple helper for handling promises in jQuery
 
 Promise hell instead of callback hell...
 
-	function _getFileContents(name) {
+	function getFileContents(name) {
 		var dfd = new $.Deferred;
 
 		setTimeout(function() {
