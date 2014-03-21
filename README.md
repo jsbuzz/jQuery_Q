@@ -4,6 +4,7 @@ jQuery.Q
 Simple helper for handling promises in jQuery
 
 Promise hell instead of callback hell...
+
 	function _getFileContents(name) {
 		var dfd = new $.Deferred;
 
@@ -27,6 +28,7 @@ Promise hell instead of callback hell...
 	}
 
 With jQuery.Q
+
 	function getFileContents(name) {
 		return $.Q.pipe(
 			$.Q('wait', 40),
