@@ -27,7 +27,7 @@ Working with a lot of async libraries and tools you can easily end up with a whe
 		return dfd.promise();
 	}
 
-With jQuery.Q you have simple workflows like pipe:
+With jQuery.Q you have simple workflows like *$.Q.pipe*, *$.Q.anyOf*, *$.Q.someOf*
 
 	function getFileContents(name) {
 		return $.Q.pipe(
@@ -37,4 +37,26 @@ With jQuery.Q you have simple workflows like pipe:
 		);
 	}
 
-And basic manipulations and abstractions over the promises like *$.Q.not(dfd)*, *$.Q.try(dfd).or(fallbackValue)*
+
+    $.when(
+        $.Q.someFrom({
+            readme  : getFileContents('readme.md'),
+            licence : getFileContents('licence.txt'),
+            author  : getFileContents('author.txt')
+        })
+    ).done(function(project) {
+    	thid.$node.find('.author').html(projecdt.author);
+    	...
+    });
+
+
+
+and basic manipulations and abstractions over the promises like *$.Q.not(dfd)*, *$.Q.try(dfd).or(fallbackValue)*
+
+	$.when(
+    	getFileContents('readme.md'),
+    	getFileContents('author.txt'),
+		$.Q.try(getFileContents('licence.txt')).or('no licence')
+ 	).done(function(readme, author, licence) {
+ 		...
+ 	})

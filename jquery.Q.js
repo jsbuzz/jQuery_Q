@@ -66,7 +66,7 @@
     /**
      * Modifier - always resolves. If the given promise resolves it forwards the results, 
      * on failure it uses the second parameter as a fallback value.
-     * Can be used with a second paramtere or with the extension .or(...)
+     * Can be used with a second parameter or with the extension .or(...)
      *
      *    $.when(
      *       $.Q.try(promise, 'failed')
@@ -89,6 +89,8 @@
         }
         var dfd = new $.Deferred();
 
+        // added setTimeout wrapper to move the execution outside of the scope of the $.when(...)
+        // this way the .or(..) extension can be attached to already rejected promises too
         setTimeout(function() {
             $.when(promise)
                 .done(function(result) {dfd.resolve(result);})
