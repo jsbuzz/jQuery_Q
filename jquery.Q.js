@@ -1,7 +1,9 @@
 (function($) {
 
+    'use strict';
+
     function isDeferred(obj) {
-        return (typeof obj.done + typeof obj.fail + typeof obj.state).match(/(function){3}/)
+        return (typeof obj.done + typeof obj.fail + typeof obj.state).match(/(function){3}/);
     }
 
     /**
@@ -83,19 +85,19 @@
             return function() {
                 var args = Array.prototype.slice.call(arguments, 0);
                 return $.Q.try(promise.apply(this, args), onError);
-            }
+            };
         }
-        var dfd = new $.Deferred;
+        var dfd = new $.Deferred();
 
         setTimeout(function() {
             $.when(promise)
-                .done(function(result) {dfd.resolve(result)})
-                .fail(function() {dfd.resolve(onError)})
+                .done(function(result) {dfd.resolve(result);})
+                .fail(function() {dfd.resolve(onError);})
             ;
         },1);
 
         var r = dfd.promise();
-        r.or = function(value) {onError = value; return this;}
+        r.or = function(value) {onError = value; return this;};
 
         return r;
     };
@@ -111,15 +113,15 @@
             return function() {
                 var args = Array.prototype.slice.call(arguments, 0);
                 return $.Q.not(promise.apply(this, args));
-            }
+            };
         }
-        var dfd = new $.Deferred;
+        var dfd = new $.Deferred();
 
         $.when(promise)
-            .done(function(result) {dfd.reject(result)})
-            .fail(function(result) {dfd.resolve(result)})
+            .done(function(result) {dfd.reject(result);})
+            .fail(function(result) {dfd.resolve(result);})
         ;
-        return dfd.promise();    
+        return dfd.promise();
     };
 
     /**
@@ -128,11 +130,11 @@
      */
     $.Q.anyOf = function(promises) {
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
-        var dfd = new $.Deferred,
+        var dfd = new $.Deferred(),
             errors = [];
 
         if(!promises.length) {
-            throw new Error("$.Q.anyOf called with no parameters");
+            throw new Error('$.Q.anyOf called with no parameters');
         }
 
         promises.forEach(function(promise) {
@@ -164,12 +166,12 @@
         var returned = [],
             results = new Array(promises.length),
             progress = 0,
-            dfd = new $.Deferred,
+            dfd = new $.Deferred(),
             errors = new Array(promises.length),
             errorCount =0;
 
         if(!promises.length) {
-            throw new Error("$.Q.someOf called with no parameters");
+            throw new Error('$.Q.someOf called with no parameters');
         }
 
         promises.forEach(function(promise, i) {
@@ -284,10 +286,10 @@
     $.Q.pipe = function() {
         var steps = Array.prototype.slice.call(arguments, 0),
             progress = 0,
-            dfd = new $.Deferred;
+            dfd = new $.Deferred();
 
         var asPromise = function(step, r) {return (typeof(step) === 'function' ? step(r) : step);},
-            abort = function(err) {dfd.reject(err)},
+            abort = function(err) {dfd.reject(err);},
             channel = function(result) {
                 ++progress;
 
@@ -326,9 +328,7 @@
      */
     $.Q.defer = function(fn) {
         var args = Array.prototype.slice.call(arguments, 1),
-            dfd = new $.Deferred,
-            defaultTimeout = 500,
-            scope = fn,
+            dfd = new $.Deferred(),
             options = {
                 handlesError: undefined,
                 fn: fn,
@@ -357,7 +357,7 @@
                 dfd.resolve(result);
             });
         } else {
-            throw new Error("No success callback for method?");
+            throw new Error('No success callback for method?');
         }
         
         // add error callback
@@ -366,14 +366,14 @@
                 dfd.reject(err);
             });
         } else if(options.handlesError) {
-            throw new Error("No error callback for method?");
+            throw new Error('No error callback for method?');
         } else if(options.timeout) {
             setTimeout(function() {dfd.reject('timeout');}, options.timeout);
         }
 
         // arguments should be fulfilled
         if(options.fn.length > args.length) {
-            throw new Error("Invalid argument list");
+            throw new Error('Invalid argument list');
         }
 
 
@@ -392,12 +392,11 @@
      * 
      */
     $.Q.deferObject = function(target, successNames, errorNames) {
-        var dfd = new $.Deferred,
-            defaultTimeout = 500,
-            progressNames = "onprogress";
+        var dfd = new $.Deferred(),
+            progressNames = 'onprogress';
 
-        successNames = successNames || "onload onloadend";
-        errorNames = errorNames || "onerror onabort";
+        successNames = successNames || 'onload onloadend';
+        errorNames = errorNames || 'onerror onabort';
 
         // attach success callbacks
         successNames.split(' ').forEach(function(cb) {

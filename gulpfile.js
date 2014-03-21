@@ -3,8 +3,6 @@
 var gulp = require('gulp');
 var jshint = require('gulp-jshint');
 var rename = require('gulp-rename');
-var clean = require('gulp-clean');
-var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
 var stylish = require('jshint-stylish');
 var header = require('gulp-header');
@@ -12,7 +10,7 @@ var header = require('gulp-header');
 var minHeader = 
      '/*! jQuery.Q.js - v1.1 - 2014-03-12\n'
     +'* https://github.com/jsbuzz/jQuery_Q\n'
-    +'* Copyright (c) 2014 Matyas Buczko; Licensed GPL2 */\n'
+    +'* Copyright (c) 2014 Matyas Buczko; Licensed GPL2 */\n';
 
 // Uglify app js (created with r.js, see ./build.sh)
 gulp.task('minify', function() {
@@ -31,7 +29,7 @@ gulp.task('lint', function() {
 });
 
 // Default task
-gulp.task('default', ['minify']);
+gulp.task('default', ['lint', 'minify']);
 
 // Build task - use ./build.sh though, as does some other stuff
 gulp.task('build', ['minify']);
