@@ -89,6 +89,38 @@
 		}).fail(function(err) {
 			console.log('fail', err);
 		});
+
+
+
+		waitForMe = false;
+		function waitsForIt(neverUsed, success) {
+			if(waitForMe) {
+				success(waitForMe);
+			} else {
+			setTimeout(waitsForIt.bind(waitsForIt, neverUsed, success), 500);
+			}
+		}
+
+		$.when(
+			$.Q.defer({
+				fn: waitsForIt,
+				timeout: 0,
+				handlesError: false
+			})
+		).done(function(result) {
+			alert(result);
+		}).fail(function(err) {
+			console.log(err)
+		});
+
+		$.when(
+			$.Q.defer(waitsForIt, 1)
+		).done(function(result) {
+			alert(result);
+		}).fail(function(err) {
+			console.log(err)
+		});
+
 	</script>
 </head>
 <body>

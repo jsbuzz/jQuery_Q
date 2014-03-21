@@ -44,7 +44,7 @@
 
 
     /**
-     * The same as $.Q but it will forward the result of the last operation to the function
+     * The same as $.Q but it will use the result of the last operation
      * 
      * @param {Function} fn 
      * 
@@ -54,6 +54,8 @@
 
         if(typeof(fn) === 'string') {
             fn = $.Q[fn];
+        } else if(isDeferred(fn)) {
+            return fn;
         }
 
         return fn.bind.apply(fn, [fn].concat(args));
@@ -65,33 +67,36 @@
      * Can be used with a second paramtere or with the extension .or(...)
      *
      *    $.when(
-     *       $.Q.anyway(promise, 'failed')
+     *       $.Q.try(promise, 'failed')
      *    ).done(...)
      *
      *    $.when(
-     *       $.Q.anyway(promise).or('failed')
+     *       $.Q.try(promise).or('failed')
      *    ).done(...)
      * 
      * @param {Promise} promise  the promise to modify
      * @param {Mixed} onError    the value it returns on failure
      * 
      */
-    $.Q.anyway = function(promise, onError) {
+    $.Q.try = function(promise, onError) {
         if(typeof(promise) === 'function') {
             return function() {
                 var args = Array.prototype.slice.call(arguments, 0);
-                return $.Q.anyway(promise.apply(this, args), onError);
+                return $.Q.try(promise.apply(this, args), onError);
             }
         }
         var dfd = new $.Deferred;
 
-        $.when(promise)
-            .done(function(result) {dfd.resolve(result)})
-            .fail(function() {dfd.resolve(onError)})
-        ;
+        setTimeout(function() {
+            $.when(promise)
+                .done(function(result) {dfd.resolve(result)})
+                .fail(function() {dfd.resolve(onError)})
+            ;
+        },1);
 
         var r = dfd.promise();
         r.or = function(value) {onError = value; return this;}
+
         return r;
     };
 
@@ -126,6 +131,10 @@
         var dfd = new $.Deferred,
             errors = [];
 
+        if(!promises.length) {
+            throw new Error("$.Q.anyOf called with no parameters");
+        }
+
         promises.forEach(function(promise) {
             if(typeof(promise) === 'function') {
                 promise = promise();
@@ -153,17 +162,21 @@
     $.Q.someOf = function(promises) {
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
         var returned = [],
-            results = [],
+            results = new Array(promises.length),
             progress = 0,
             dfd = new $.Deferred,
-            errors = [];
+            errors = new Array(promises.length),
+            errorCount =0;
+
+        if(!promises.length) {
+            throw new Error("$.Q.someOf called with no parameters");
+        }
 
         promises.forEach(function(promise, i) {
             if(typeof(promise) === 'function') {
                 promise = promise();
             }
             returned[i] = false;
-            results[i] = undefined;
             promise.done(function(result) {
                 returned[i] = true;
                 results[i] = result;
@@ -180,7 +193,8 @@
                 dfd.resolve(results);
             }).fail(function(error) {
                 returned[i] = true;
-                errors.push(error);
+                errorCount++;
+                errors[i] = error;
                 for(var j=0; j < returned.length; j++) {
                     if(!returned[j]) {
                         dfd.notify({
@@ -191,7 +205,7 @@
                         return false;
                     }
                 }
-                if(errors.length < results.length) {
+                if(errorCount < results.length) {
                     dfd.resolve(results);
                 } else {
                     dfd.reject(errors);
@@ -213,59 +227,32 @@
      */
     $.Q.someFrom = function(names) {
         var promises = [],
-            returned = [],
             map = [],
-            results = false,
-            progress = 0,
-            dfd = new $.Deferred;
+            i = 0,
+            dfd = new $.Deferred();
 
-        var index = 0;
-        for(var name in  names) {
-            if(!names.hasOwnProperty(name)) {
-                continue;
-            }
-            promises[index] = names[name];
-            map[index] = name;
-            returned[index] = false;
-            index++;
+        for(var name in names) {
+            map[i] = name;
+            promises[i] = names[name];
+            i++;
         }
 
-        promises.forEach(function(promise, i) {
-            promise.done(function(result) {
-                returned[i] = true;
-                if(!results) {
-                    results = {};
-                }
-                results[map[i]] = result;
-                for(var j=0; j < returned.length; j++) {
-                    if(!returned[j]) {
-                        dfd.notify({
-                            pct: 100 * (++progress) / promises.length,
-                            msg : '',
-                            results: results
-                        });
-                        return false;
-                    }
-                }
-                dfd.resolve(results);
-            }).fail(function() {
-                returned[i] = true;
-                for(var j=0; j < returned.length; j++) {
-                    if(!returned[j]) {
-                        dfd.notify({
-                            pct: 100 * (++progress) / promises.length,
-                            msg : '',
-                            results: results
-                        });
-                        return false;
-                    }
-                }
-                if(results) {
-                    dfd.resolve(results);
-                } else {
-                    dfd.reject();
-                }
+        $.when(
+            $.Q.someOf(promises)
+        ).done(function(results) {
+            var resultObj = {};
+            map.forEach(function(name, i) {
+                resultObj[name] = results[i];
             });
+
+            dfd.resolve(resultObj);
+        }).fail(function(results) {
+            var resultObj = {};
+            map.forEach(function(name, i) {
+                resultObj[name] = results[i];
+            });
+
+            dfd.reject(resultObj);
         });
 
         return dfd.promise();
@@ -278,21 +265,21 @@
      * 
      */
     $.Q.wait = function(timeout, _transparent_) {
-        var dfd = new $.Deferred();
+        var dfd = new $.Deferred(),
+            promise = dfd.promise();
 
-        setTimeout(
+        promise.id = setTimeout(
             function(){
                 dfd.resolve(_transparent_);
             },
             timeout
         );
 
-        return dfd.promise();
+        return promise;
     };
 
     /**
      * Pipe
-     * 
      */
     $.Q.pipe = function() {
         var steps = Array.prototype.slice.call(arguments, 0),
@@ -304,6 +291,15 @@
             channel = function(result) {
                 ++progress;
 
+                // send the progress to the deferred
+                dfd.notify({
+                    pct    : parseInt(100 * progress / steps.length),
+                    msg    : progress + '/' + steps.length,
+                    done   : progress,
+                    total  : steps.length,
+                    result : result
+                });
+
                 // if we are done
                 if(progress >= steps.length) {
                     dfd.resolve(result);
@@ -314,13 +310,6 @@
                 $.when(
                     asPromise(steps[progress], result)
                 ).done(channel).fail(abort);
-
-                // ond send the progress to the deferred
-                dfd.notify({
-                    pct: 100 * progress / steps.length,
-                    msg : '',
-                    result: result
-                });
             };
 
         // call the first step
@@ -339,18 +328,31 @@
         var args = Array.prototype.slice.call(arguments, 1),
             dfd = new $.Deferred,
             defaultTimeout = 500,
-            scope = fn;
+            scope = fn,
+            options = {
+                handlesError: undefined,
+                fn: fn,
+                timeout: 500,
+                scope: fn
+            };
 
-        if(!args.length && typeof(fn) === 'object') {
-            var options = fn;
-            args = options.params || [];
-            defaultTimeout = options.timeout || defaultTimeout;
-            scope = options.scope || options;
-            fn = options.fn;
+        if(typeof(fn) === 'object') {
+            $.extend(options, fn);
+        }
+
+        // push in extra arguments if needed
+        if(options.fn.length > args.length) {
+            var remaining = options.fn.length - args.length,
+                needed = options.handlesError === undefined || options.handlesError  ? 2 : 1;
+
+            while(remaining > needed) {
+                args.push(undefined);
+                remaining--;
+            }
         }
 
         // add success callback
-        if(fn.length > args.length) {
+        if(options.fn.length > args.length) {
             args.push(function(result) {
                 dfd.resolve(result);
             });
@@ -359,22 +361,24 @@
         }
         
         // add error callback
-        if(fn.length > args.length) {
+        if(options.fn.length > args.length) {
             args.push(function(err) {
                 dfd.reject(err);
             });
-        } else {
-            setTimeout(function() {dfd.reject('timeout');}, defaultTimeout);
+        } else if(options.handlesError) {
+            throw new Error("No error callback for method?");
+        } else if(options.timeout) {
+            setTimeout(function() {dfd.reject('timeout');}, options.timeout);
         }
 
         // arguments should be fulfilled
-        if(fn.length > args.length) {
+        if(options.fn.length > args.length) {
             throw new Error("Invalid argument list");
         }
 
 
         try {
-            fn.apply(scope, args);
+            options.fn.apply(options.scope, args);
         } catch(error) {
             dfd.reject(error);
         }

@@ -12,6 +12,7 @@
     "karma-safari-launcher": "~0.1.1",
     "node-bourbon": "~1.0.0",
     "gulp-clean": "^0.2.4",
+    "gulp-header": "^0.2.4",
     "gulp-util": "~2.2.14",
     "gulp": "~3.5.2",
     "gulp-jshint": "^1.5.0",

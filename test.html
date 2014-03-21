@@ -29,7 +29,7 @@
 	        }
 	    });
 
-	    /**/
+	    /**
 	    $.when(
 	        $.Q.pipe(
 	        	$.Q.wait(500),
@@ -50,24 +50,46 @@
 	    	console.log('failed:', err);
 	    });
 		
-		/**
+		/**/
+		function _getFileContents(name) {
+			var dfd = new $.Deferred;
+
+			setTimeout(function() {
+				$.when(
+					fileSystem.getFile(name)
+				).done(function(file) {
+					$.when(
+						fileSystem.read(file)
+					).done(function(contents) {
+						dfd.resolve(contents);
+					}).fail(function(error) {
+						dfd.reject(error)
+					})
+				}).fail(function(error) {
+					dfd.reject(error)
+				})
+			}, 40);
+
+			return dfd;
+		}
+
 		function getFileContents(name) {
 			return $.Q.pipe(
-				$.Q.wait(40), 
-        		$.Q.use(fileSystem.getFile, name), 
+				$.Q('wait', 40),
+        		$.Q(fileSystem.getFile, name), 
         		$.Q.use(fileSystem.read)
 			);
 		}
 
-	    /**
+	    /**/
 	    $.when(
 	    	getFileContents('readme.md'),
 	    	getFileContents('author.txt'),
-	        $.Q.anyway(getFileContents('licence.txt')).or('no licence')
+	        $.Q.try(getFileContents('licence.txt')).or('no licence')
 	    ).done(function(readme, author, licence) {
-	        console.log('---------------------------------------');
-	        console.log('Project is ready to use with $.Q.anyway');
-	        console.log('---------------------------------------');
+	        console.log('--------------------------------');
+	        console.log('Project is ready to use with $.Q');
+	        console.log('--------------------------------');
 	        console.log('About: ', readme);
 	        console.log('Licence: ', licence);
 	        console.log('Author: ', author);
@@ -76,7 +98,7 @@
 	        console.log('Essentials missing!', err);
 	    });
 	    
-	    /**
+	    /**/
 	    $.when(
 	        $.Q.someFrom({
 	            readme  : getFileContents('readme.md'),
