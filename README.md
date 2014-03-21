@@ -1,9 +1,9 @@
 jQuery.Q
 ========
 
-Simple helper for handling promises in jQuery
+Simple helper for handling promises in jQuery - giving you powerful and useful tools and controls over workflows.
 
-Promise hell instead of callback hell...
+Working with a lot of async libraries and tools you can easily end up with a when-done hell instead of a callback hell. Pretty much like this:
 
 	function getFileContents(name) {
 		var dfd = new $.Deferred;
@@ -24,10 +24,10 @@ Promise hell instead of callback hell...
 			})
 		}, 40);
 
-		return dfd;
+		return dfd.promise();
 	}
 
-With jQuery.Q
+With jQuery.Q you have simple workflows like pipe:
 
 	function getFileContents(name) {
 		return $.Q.pipe(
@@ -37,4 +37,4 @@ With jQuery.Q
 		);
 	}
 
-
+And basic manipulations and abstractions over the promises like *$.Q.not(dfd)*, *$.Q.try(dfd).or(fallbackValue)*

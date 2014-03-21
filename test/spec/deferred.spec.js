@@ -19,7 +19,7 @@ describe("$.Q.defer", function() {
     function onlySuccess(timeout, success) {
         setTimeout(
             function() {
-                success(result);
+                success(timeout);
             },
             timeout
         )
@@ -34,6 +34,12 @@ describe("$.Q.defer", function() {
             ).done(function(result) {
                 testResult = result;
             });
+            
+            $.when(
+                $.Q.defer(onlySuccess, 10)
+            ).done(function(result) {
+                testResult += result;
+            });
         });
 
         waitsFor(function() {
@@ -41,7 +47,7 @@ describe("$.Q.defer", function() {
         }, "The Value should be true", 50);
 
         runs(function() {
-            expect(testResult).toBe(1);
+            expect(testResult).toBe(11);
         });
     });
 
@@ -65,7 +71,7 @@ describe("$.Q.defer", function() {
         });
     });
 
-    it("times out", function() {
+    it("times out if no error callback", function() {
         runs(function() {
             testResult = false;
 
