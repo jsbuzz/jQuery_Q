@@ -192,6 +192,14 @@
                         return false;
                     }
                 }
+                // notify about 100%
+                dfd.notify({
+                    pct: 100,
+                    msg : '',
+                    results: results
+                });
+
+                // and resolve
                 dfd.resolve(results);
             }).fail(function(error) {
                 returned[i] = true;
@@ -207,6 +215,14 @@
                         return false;
                     }
                 }
+                // notify about 100%
+                dfd.notify({
+                    pct: 100,
+                    msg : '',
+                    results: results
+                });
+
+                // and terminate
                 if(errorCount < results.length) {
                     dfd.resolve(results);
                 } else {
@@ -255,6 +271,8 @@
             });
 
             dfd.reject(resultObj);
+        }).progress(function(prg) {
+            dfd.notify(prg);
         });
 
         return dfd.promise();

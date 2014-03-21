@@ -8,16 +8,14 @@
 	<script src="jquery.Q.js" ></script>
 	<script src="test.filesystem.js" ></script>
 	<script>
-		var _Q = $.Q;
 
 	    $.when(
 	        $.Q.someFrom({
 	            readme  : $.Q.not(fileSystem.getFile('readme.md')),
 	            licence : $.Q.not(fileSystem.getFile('licence.txt')),
 	            author  : $.Q.not(fileSystem.getFile('author.txt'))
-	        }).progress(function(prg) {console.log('creation', parseInt(prg.pct) + '%')})
+	        }).progress(function(prg) {console.log('checking missing files', parseInt(prg.pct) + '%')})
 	    ).done(function(missing) {
-	    	console.log('creation done');
 	        if(missing.readme) {
 	            fileSystem.createFile('readme.md', 'This is a simple test');
 	        }
@@ -28,50 +26,6 @@
 	            fileSystem.createFile('author.txt', 'MySelf');
 	        }
 	    });
-
-	    /**
-	    $.when(
-	        $.Q.pipe(
-	        	$.Q.wait(500),
-	        	$.Q('wait', 500),
-	        	$.Q('anyOf', // if file doesn't exist, create it
-	        		$.Q('pipe',
-		            	$.Q.not($.Q(fileSystem.getFile, 'readme.md')),
-		            	$.Q(fileSystem.createFile, 'readme.md', 'This is a simple test')
-		            ),
-		        	$.Q(fileSystem.getFile, 'readme.md')
-	            ),
-	        	$.Q.use('wait', 500),
-	            $.Q.use(fileSystem.read)
-	        ).progress(function(prg) {console.log('pipe', parseInt(prg.pct) + '%')})
-	    ).done(function(pipe) {
-	    	console.log('done:', pipe);
-	    }).fail(function(err) {
-	    	console.log('failed:', err);
-	    });
-		
-		/**/
-		function _getFileContents(name) {
-			var dfd = new $.Deferred;
-
-			setTimeout(function() {
-				$.when(
-					fileSystem.getFile(name)
-				).done(function(file) {
-					$.when(
-						fileSystem.read(file)
-					).done(function(contents) {
-						dfd.resolve(contents);
-					}).fail(function(error) {
-						dfd.reject(error)
-					})
-				}).fail(function(error) {
-					dfd.reject(error)
-				})
-			}, 40);
-
-			return dfd;
-		}
 
 		function getFileContents(name) {
 			return $.Q.pipe(
@@ -87,9 +41,9 @@
 	    	getFileContents('author.txt'),
 	        $.Q.try(getFileContents('licence.txt')).or('no licence')
 	    ).done(function(readme, author, licence) {
-	        console.log('--------------------------------');
-	        console.log('Project is ready to use with $.Q');
-	        console.log('--------------------------------');
+	        console.log('------------------------------------');
+	        console.log('Project is ready to use with $.Q.try');
+	        console.log('------------------------------------');
 	        console.log('About: ', readme);
 	        console.log('Licence: ', licence);
 	        console.log('Author: ', author);
