@@ -3,22 +3,36 @@ jQuery.Q
 
 Simple helper for handling promises in jQuery
 
-	$.when(
-	    $.Q.pipe(
-	    	$.Q.wait(500),
-	    	$.Q($.Q.anyOf, // if file doesn't exist, create it
-	    		$.Q($.Q.pipe,
-	            	$.Q.not($.Q(fileSystem.getFile, 'readme.md')),
-	            	$.Q(fileSystem.createFile, 'readme.md', 'This is a simple test')
-	            ),// otherwise get it
-	        	$.Q(fileSystem.getFile, 'readme.md')
-	        ),
-	    	$.Q.use($.Q.wait, 500), // testing transparency of $.Q.wait
-	        $.Q.use(fileSystem.read)
-	    ).progress(function(prg) {console.log('pipe', parseInt(prg.pct) + '%')})
-	).done(function(pipe) {
-		console.log('done:', pipe);
-	}).fail(function(err) {
-		console.log('failed:', err);
-	});
+Promise hell instead of callback hell...
+	function _getFileContents(name) {
+		var dfd = new $.Deferred;
+
+		setTimeout(function() {
+			$.when(
+				fileSystem.getFile(name)
+			).done(function(file) {
+				$.when(
+					fileSystem.read(file)
+				).done(function(contents) {
+					dfd.resolve(contents);
+				}).fail(function(error) {
+					dfd.reject(error)
+				})
+			}).fail(function(error) {
+				dfd.reject(error)
+			})
+		}, 40);
+
+		return dfd;
+	}
+
+With jQuery.Q
+	function getFileContents(name) {
+		return $.Q.pipe(
+			$.Q('wait', 40),
+    		$.Q(fileSystem.getFile, name), 
+    		$.Q.use(fileSystem.read)
+		);
+	}
+
 
