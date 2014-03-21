@@ -29,27 +29,28 @@
 	        }
 	    });
 
-	    /**
+	    /**/
 	    $.when(
-	        pipe(
-	        	wait(500),
-	        	$.Q(wait, 500),
-	        	$.Q(anyOf, // if file doesn't exist, create it
-	        		$.Q(pipe,
+	        $.Q.pipe(
+	        	$.Q.wait(500),
+	        	$.Q('wait', 500),
+	        	$.Q('anyOf', // if file doesn't exist, create it
+	        		$.Q('pipe',
 		            	$.Q.not($.Q(fileSystem.getFile, 'readme.md')),
 		            	$.Q(fileSystem.createFile, 'readme.md', 'This is a simple test')
 		            ),
 		        	$.Q(fileSystem.getFile, 'readme.md')
 	            ),
-	        	use(wait, 500),
-	            use(fileSystem.read)
+	        	$.Q.use('wait', 500),
+	            $.Q.use(fileSystem.read)
 	        ).progress(function(prg) {console.log('pipe', parseInt(prg.pct) + '%')})
 	    ).done(function(pipe) {
 	    	console.log('done:', pipe);
 	    }).fail(function(err) {
 	    	console.log('failed:', err);
 	    });
-		/**/
+		
+		/**
 		function getFileContents(name) {
 			return $.Q.pipe(
 				$.Q.wait(40), 
@@ -58,7 +59,7 @@
 			);
 		}
 
-	    /**/
+	    /**
 	    $.when(
 	    	getFileContents('readme.md'),
 	    	getFileContents('author.txt'),
@@ -75,12 +76,12 @@
 	        console.log('Essentials missing!', err);
 	    });
 	    
-	    /**/
+	    /**
 	    $.when(
 	        $.Q.someFrom({
 	            readme  : getFileContents('readme.md'),
-	            licence  : getFileContents('licence.txt'),
-	            author : getFileContents('author.txt')
+	            licence : getFileContents('licence.txt'),
+	            author  : getFileContents('author.txt')
 	        })
 	    ).done(function(project) {
 	        console.log('-----------------------------------------');
@@ -93,42 +94,6 @@
 	    }).fail(function(err) {
 	        console.log('All files missing!', err);
 	    });
-		/**/
-		/**
-		$.when(
-		    $.Q.not(test(10, 1, 1)),
-		    $.Q.anyway(test(20, 1, 1)).or('works')
-		).done(function(r1, r2) {
-		    console.log('done!', r1, r2);
-		}).fail(function(err) {
-		    console.log('failed!', err);
-		});
-		/**/
-		/**
-		$.when(
-		    $.Q.anyOf(
-		        test(200, 1),
-		        test(20, 2, 1), 
-		        test(10, 3)
-		    ),
-		    $.Q.someFrom({
-		        one: test(200, 1),
-		        two: test(20, 2, 1), 
-		        three: test(10, 3)
-		    })
-		).done(function(anyof, result) {
-		    console.log('done!', anyof, result);
-		}).fail(function(err) {
-		    console.log('failed!', err);
-		});
-		/**/
-		/**
-		test(200, 1)
-		.then($.Q.anyway($.Q.use(test, 100, 2), false))
-		.then($.Q.use(test, 100, 3))
-		    .done(function(a) {console.log('done', a)})
-		    .fail(function(a) {console.log('fail', a)})
-		;
 		/**/
 	</script>
 </head>

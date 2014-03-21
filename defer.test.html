@@ -6,7 +6,6 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
 	<script src="jquery.Q.js" ></script>
-	<script src="test.filesystem.js" ></script>
 	<script>
 		function somethingAsync(rarity, success, error) {
 			setTimeout(
@@ -39,7 +38,7 @@
 		var tasks = [];
 
 		for(var i=1; i < 10; i++) {
-			tasks.push($.Q.defer(somethingAsync, i));
+			tasks.push($.Q('defer', somethingAsync, i));
 		}
 		tasks.push($.Q.debug.success('no surprise'));
 		tasks.push($.Q.debug.failure('no surprise'));
@@ -51,9 +50,49 @@
 		}).fail(function(errors) {
 			console.log('all failed', errors);
 		});
+
+
+		testReader = {
+			readAsText : function (blob) {
+				setTimeout(
+					function() {
+						this.onloadend(blob);
+					}.bind(this),
+					500
+				);
+			}
+		};
+
+		// deferObject test
+		testFile1 = new Blob(["contents of test file"], {type: 'text/plain'});
+		testFile2 = new Blob(["are dangerous"], {type: 'text/plain'});
+		reader1 = $.Q.deferObject(new FileReader);
+		reader2 = $.Q.deferObject(new FileReader);
+
+		$.when(
+			reader1.do({ readAsText: [testFile1] }),
+			reader2.do({ readAsText: [testFile2] })
+		).done(function(r1, r2) {
+			console.log(reader1.target.result + ' ' + reader2.target.result);
+		}).fail(function(error) {
+			console.log('fail', error);
+		});
+
+		var img = $.Q.deferObject(document.createElement("img"));
+		$(img.target).appendTo(document.body);
+
+		$.when(
+			img.set({ src: "http://placekitten.com/1024/768?r=" + Math.random()})
+		).done(function() {
+			$("#test")[0].src = img.target.src;
+			$("#test")[0].width = 30;
+		}).fail(function(err) {
+			console.log('fail', err);
+		});
 	</script>
 </head>
 <body>
 	Check the console.
+	<img id="test"/>
 </body>
 </html>

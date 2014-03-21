@@ -1,5 +1,9 @@
 (function($) {
 
+    function isDeferred(obj) {
+        return (typeof obj.done + typeof obj.fail + typeof obj.state).match(/(function){3}/)
+    }
+
     /**
      * Wrapper object and basic caller for promise chaining.
      * The first argument is the function to call, all the others are used as its arguments.
@@ -9,6 +13,13 @@
      */
     $.Q = function(fn) {
         var args = Array.prototype.slice.call(arguments, 1);
+
+        if(typeof(fn) === 'string') {
+            fn = $.Q[fn];
+        } else if(isDeferred(fn)) {
+            return fn;
+        }
+
         return function() {
             return fn.apply(fn, args);
         };
@@ -39,8 +50,13 @@
      * 
      */
     $.Q.use = function(fn) {
-        var args = Array.prototype.slice.call(arguments, 0);
-        return fn.bind.apply(fn, args);
+        var args = Array.prototype.slice.call(arguments, 1);
+
+        if(typeof(fn) === 'string') {
+            fn = $.Q[fn];
+        }
+
+        return fn.bind.apply(fn, [fn].concat(args));
     };
 
     /**
@@ -316,7 +332,7 @@
     };
 
     /**
-     * defer
+     * defer - creates a deferred version of an async function with the given parameters
      * 
      */
     $.Q.defer = function(fn) {
@@ -367,14 +383,86 @@
     };
 
     /**
-     * parallel
+     * deferObject - creates a deferred version of a typical async object like FileReader or Image
+     * You can access the target object through do/set methods or as the .target propery directly
+     * 
+     */
+    $.Q.deferObject = function(target, successNames, errorNames) {
+        var dfd = new $.Deferred,
+            defaultTimeout = 500,
+            progressNames = "onprogress";
+
+        successNames = successNames || "onload onloadend";
+        errorNames = errorNames || "onerror onabort";
+
+        // attach success callbacks
+        successNames.split(' ').forEach(function(cb) {
+            target[cb] = function(result) {
+                dfd.resolve(result);
+            };
+        });
+
+        // attach error callbacks
+        errorNames.split(' ').forEach(function(cb) {
+            target[cb] = function(err) {
+                dfd.reject(err);
+            };
+        });
+
+        // attach progress callbacks
+        progressNames.split(' ').forEach(function(cb) {
+            target[cb] = function(prg) {
+                dfd.progress(prg);
+            };
+        });
+
+        var promise = dfd.promise();
+        promise.target = target;
+        promise.do = function(toDo) {
+            try {
+                for(var method in toDo) {
+                    if(!toDo.hasOwnProperty(method)) {
+                        continue;
+                    }
+                    target[method].apply(target, toDo[method]);
+                }
+            } catch(error) {
+                dfd.reject(error);
+            }
+            return promise;
+        };
+
+        promise.set = function(properties) {
+            try {
+                for(var prop in properties) {
+                    if(!properties.hasOwnProperty(prop)) {
+                        continue;
+                    }
+                    target[prop] = properties[prop];
+                }
+            } catch(error) {
+                dfd.reject(error);
+            }
+            return promise;
+        };
+
+        return promise;
+    };
+
+    /**
+     * parallel - just a workaround to use $.when with an array of promises
      * 
      */
     $.Q.parallel = function(tasks) {
+        tasks = (tasks instanceof Array) ? tasks : Array.prototype.slice.call(arguments, 0);
         return $.when.apply($, tasks);
     };
 
 
+    /**
+     * Debug/test helpers
+     * 
+     */
     $.Q.debug = {
         success : function(result) {
             return new $.Deferred().resolve(result);
