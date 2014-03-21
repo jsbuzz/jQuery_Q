@@ -45,7 +45,7 @@ With jQuery.Q you have simple workflows like *$.Q.pipe*, *$.Q.anyOf*, *$.Q.someO
             author  : getFileContents('author.txt')
         })
     ).done(function(project) {
-    	thid.$node.find('.author').html(projecdt.author);
+    	thid.$node.find('.author').html(project.author || '- no author -');
     	...
     });
 
