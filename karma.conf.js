@@ -32,6 +32,15 @@ module.exports = function (config) {
         exclude: [
         ],
 
+        preprocessors: {
+            'jquery.Q.js': 'coverage'
+        },
+
+        coverageReporter: {
+            type: 'html',
+            dir: 'test/coverage'
+        },
+
         // test results reporter to use
         // possible values: 'dots', 'progress', 'junit', 'growl', 'coverage'
         reporters: ['dots', 'coverage'],
@@ -48,7 +57,8 @@ module.exports = function (config) {
         // - PhantomJS
         // - IE (only Windows)
         browsers: [
-            'Chrome'
+            'Chrome',
+            'Firefox'
         ],
 
         // If browser does not capture in given timeout [ms], kill it

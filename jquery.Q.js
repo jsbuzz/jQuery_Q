@@ -7,10 +7,17 @@
     }
 
     /**
-     * Wrapper object and basic caller for promise chaining.
+     * Wrapper method for promise chaining.
      * The first argument is the function to call, all the others are used as its arguments.
+     * The parameter can have three types:
+     *  - function: $.Q returns with a wrapper function
+     *  - string: $.Q will accept a string as a method of $.Q itself (e.g. use, bound, wait, pipe etc.)
+     *  - deferred: passes thru as deferred
      * 
-     * @param {Function} fn 
+     * Example:
+     * 
+     *
+     * @param {mixed} fn
      * 
      */
     $.Q = function(fn) {
@@ -28,7 +35,7 @@
     };
 
     /**
-     * Same as $.Q but the first parameter is the host object of the function.
+     * Also a wrapper method for
      * 
      * @param {Object} _this
      * @param {Function} fn 
@@ -165,70 +172,46 @@
      */
     $.Q.someOf = function(promises) {
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
-        var returned = [],
-            results = new Array(promises.length),
+        var results = new Array(promises.length),
             progress = 0,
             dfd = new $.Deferred(),
             errors = new Array(promises.length),
-            errorCount =0;
+            errorCount = 0;
 
         if(!promises.length) {
             throw new Error('$.Q.someOf called with no parameters');
         }
 
+        var allAreDone = function() {
+            // notify about the percentage
+            dfd.notify({
+                pct: 100 * (++progress) / promises.length,
+                msg : '',
+                results: results
+            });
+
+            return progress >= promises.length;
+        };
+
         promises.forEach(function(promise, i) {
             if(typeof(promise) === 'function') {
                 promise = promise();
             }
-            returned[i] = false;
             promise.done(function(result) {
-                returned[i] = true;
                 results[i] = result;
-                for(var j=0; j < returned.length; j++) {
-                    if(!returned[j]) {
-                        dfd.notify({
-                            pct: 100 * (++progress) / promises.length,
-                            msg : '',
-                            results: results
-                        });
-                        return false;
-                    }
+                if(allAreDone()) {
+                    dfd.resolve(results);
                 }
-                // notify about 100%
-                dfd.notify({
-                    pct: 100,
-                    msg : '',
-                    results: results
-                });
-
-                // and resolve
-                dfd.resolve(results);
             }).fail(function(error) {
-                returned[i] = true;
                 errorCount++;
                 errors[i] = error;
-                for(var j=0; j < returned.length; j++) {
-                    if(!returned[j]) {
-                        dfd.notify({
-                            pct: 100 * (++progress) / promises.length,
-                            msg : '',
-                            results: results
-                        });
-                        return false;
-                    }
-                }
-                // notify about 100%
-                dfd.notify({
-                    pct: 100,
-                    msg : '',
-                    results: results
-                });
 
-                // and terminate
-                if(errorCount < results.length) {
-                    dfd.resolve(results);
-                } else {
-                    dfd.reject(errors);
+                if(allAreDone()) {
+                    if(errorCount < results.length) {
+                        dfd.resolve(results);
+                    } else {
+                        dfd.reject(errors);
+                    }
                 }
             });
         });
@@ -249,7 +232,14 @@
         var promises = [],
             map = [],
             i = 0,
-            dfd = new $.Deferred();
+            dfd = new $.Deferred(),
+            mapper = function(results) {
+                var resultObj = {};
+                map.forEach(function(name, i) {
+                    resultObj[name] = results[i];
+                });
+                return resultObj;
+            };
 
         for(var name in names) {
             map[i] = name;
@@ -257,25 +247,10 @@
             i++;
         }
 
-        $.when(
-            $.Q.someOf(promises)
-        ).done(function(results) {
-            var resultObj = {};
-            map.forEach(function(name, i) {
-                resultObj[name] = results[i];
-            });
-
-            dfd.resolve(resultObj);
-        }).fail(function(results) {
-            var resultObj = {};
-            map.forEach(function(name, i) {
-                resultObj[name] = results[i];
-            });
-
-            dfd.reject(resultObj);
-        }).progress(function(prg) {
-            dfd.notify(prg);
-        });
+        $.when($.Q.someOf(promises))
+            .done(function(results) { dfd.resolve(mapper(results)); })
+            .fail(function(results) { dfd.reject(mapper(results)); })
+            .progress(function(prg) { dfd.notify(prg); });
 
         return dfd.promise();
     };
@@ -391,11 +366,6 @@
             setTimeout(function() {dfd.reject('timeout');}, options.timeout);
         }
 
-        // arguments should be fulfilled
-        if(options.fn.length > args.length) {
-            throw new Error('Invalid argument list');
-        }
-
         try {
             options.fn.apply(options.scope, args);
         } catch(error) {
@@ -408,7 +378,10 @@
     /**
      * deferObject - creates a deferred version of a typical async object like FileReader or Image
      * You can access the target object through do/set methods or as the .target propery directly
-     * 
+     *
+     * @param {Object} target
+     * @param {String} successNames  List of success events divided by spaces
+     * @param {String} errorNames    List of error events divided by spaces
      */
     $.Q.deferObject = function(target, successNames, errorNames) {
         var dfd = new $.Deferred(),
@@ -418,21 +391,21 @@
         errorNames = errorNames || 'onerror onabort';
 
         // attach success callbacks
-        successNames.split(' ').forEach(function(cb) {
+        successNames.split(/[\s]+/).forEach(function(cb) {
             target[cb] = function(result) {
                 dfd.resolve(result);
             };
         });
 
         // attach error callbacks
-        errorNames.split(' ').forEach(function(cb) {
+        errorNames.split(/[\s]+/).forEach(function(cb) {
             target[cb] = function(err) {
                 dfd.reject(err);
             };
         });
 
         // attach progress callbacks
-        progressNames.split(' ').forEach(function(cb) {
+        progressNames.split(/[\s]+/).forEach(function(cb) {
             target[cb] = function(prg) {
                 dfd.progress(prg);
             };
@@ -472,11 +445,16 @@
     };
 
     /**
-     * parallel - just a workaround to use $.when with an array of promises
-     * 
+     * parallel/allOf - The same as $.when, but it can accept an array as well and it will try to call
+     * functions to get the promises
      */
-    $.Q.parallel = function(tasks) {
+    $.Q.parallel = $.Q.allOf = function(tasks) {
         tasks = (tasks instanceof Array) ? tasks : Array.prototype.slice.call(arguments, 0);
+        tasks.forEach(function(task, i) {
+            if(typeof task === 'function') {
+                tasks[i] = task();
+            }
+        });
         return $.when.apply($, tasks);
     };
 
