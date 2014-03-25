@@ -1,9 +1,12 @@
 jQuery.Q
 ========
 
-Simple helper for handling promises in jQuery - giving you powerful and useful tools and controls over workflows.
+First of all, I'd like to explain why I wrote this library. Yes it is yet another library for handling promises. But at least it is based on jQuery's built in promise API and it is super-lightweight.
 
-Working with a lot of async libraries and tools you can easily end up with a when-done hell instead of a callback hell. Pretty much like this:
+As I was using jQuery and its promise system for a project I discovered the lack of handling basic workflows and especially chained tasks. As the project was a chrome extension it was literally handling everything asynchronously. That is why I created the library, to help me write more structured code and increase the readability + helped me centralize error and progress handling as a bonus.
+
+
+While working with a lot of async calls you can easily end up with a 'when-done' hell instead of a callback hell. Pretty much like this:
 
 	function getFileContents(name) {
 		var dfd = new $.Deferred;
@@ -26,6 +29,7 @@ Working with a lot of async libraries and tools you can easily end up with a whe
 
 		return dfd.promise();
 	}
+
 
 With jQuery.Q you have simple workflows like *$.Q.pipe*, *$.Q.anyOf*, *$.Q.someOf*
 

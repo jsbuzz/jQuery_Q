@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>$.Q test</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" ></script>
+	<script src="jquery.Q.js" ></script>
+	<script>
+
+	// stash and pop
+		$.pipe(
+			$.Q(first),
+			$.Q.use(getObject),
+			$.Q.apply(getFilename),
+			$.Q.stash('filename'),
+			$.Q('wait', 100),
+			$.Q.pop('filename'),
+			$.Q.use(getFileContents)
+		).done(function(result) {
+			console.log(result);
+		}).fail(function(err) {
+			console.log(err)
+		});
+
+	// distribute
+		$.pipe(
+			$.Q(getFileContents, 'readme.md'),
+			$.Q.use('parallel',
+				$.Q.use(saveToCache),
+				$.Q.use(sendToServer)
+			)
+		).done(function(result) {
+			console.log(result);
+		}).fail(function(err) {
+			console.log(err)
+		});	
+
+
+	</script>
+</head>
+<body>
+	Check the console.
+	<img id="test"/>
+</body>
+</html>

@@ -9,7 +9,7 @@
 	<script src="test.filesystem.js" ></script>
 	<script>
 
-	    $.when(
+/*	    $.when(
 	        $.Q.someFrom({
 	            readme  : $.Q.not(fileSystem.getFile('readme.md')),
 	            licence : $.Q.not(fileSystem.getFile('licence.txt')),
@@ -26,7 +26,7 @@
 	            fileSystem.createFile('author.txt', 'MySelf');
 	        }
 	    });
-
+*/
 		function getFileContents(name) {
 			return $.Q.pipe(
 				$.Q('wait', 40),
@@ -35,7 +35,30 @@
 			);
 		}
 
-	    /**/
+		function printStuff() {
+			var stuff = Array.prototype.slice.call(arguments);
+			console.log('stuff: ', stuff);
+			return $.Q.debug.success(stuff.pop());
+		}
+
+	    $.when(
+	    	$.Q.pipe(
+	    		getFileContents('readme.md'),
+	    		$.Q.use('allOf',
+	    			$.Q.use(printStuff, 1),
+	    			$.Q.not($.Q.use(printStuff, 2))
+	    		),
+	    		$.Q.apply(Array.prototype.join, ' | '),
+	    		$.Q.use(printStuff)
+	    	)
+	    ).done(function(result, result2) {
+	        console.log('magically worked', result, result2);
+	    }).fail(function(err) {
+	        console.log('gone wrong!', err);
+	    });
+
+
+	    /**
 	    $.when(
 	    	getFileContents('readme.md'),
 	    	getFileContents('author.txt'),
@@ -52,7 +75,7 @@
 	        console.log('Essentials missing!', err);
 	    });
 	    
-	    /**/
+	    /**
 	    $.when(
 	        $.Q.someFrom({
 	            readme  : getFileContents('readme.md'),
