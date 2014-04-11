@@ -2,38 +2,41 @@
 
     'use strict';
 
-    function isDeferred(obj) {
-        return (typeof obj.done + typeof obj.fail + typeof obj.state).match(/(function){3}/);
-    }
-
     /**
-    * chaining wrappers
-    *  - $.Q
-    *  - $.Q.use
-    *  - $.Q.bound
-    *  - $.Q.apply
-    *  - $.Q.bound
+    * Chaining wrappers
+    * <ul>
+    * <li> $.Q </li>
+    * <li> $.Q.use </li>
+    * <li> $.Q.bound </li>
+    * <li> $.Q.apply </li>
+    * <li> $.Q.bound </li>
+    * </ul>
+    *
+    * @namespace Chaining
     */
+    $.Q = true;
 
     /**
      * Wrapper method for promise chaining.
      * The first argument is the function to call, all the others are used as its arguments.
      * $.Q is not transparent to a pipe chain, so the result of the last operation will be lost.
      * If you want to chain operations use $.Q.use or $.Q.bound instead.
-     * The parameter can have three types:
-     *  - function: $.Q returns with a wrapper function
-     *  - string: $.Q will accept a string as a method of $.Q itself (e.g. use, bound, wait, pipe etc.)
-     *  - deferred: passes thru as deferred
+     * The parameter can have three types: <ul>
+     * <li> function: $.Q returns with a wrapper function </li>
+     * <li> string: $.Q will accept a string as a method of $.Q itself (e.g. use, bound, wait, pipe etc.) </li>
+     * <li> deferred: passes thru as deferred </li>
+     * </ul>
      * 
-     * Example:
+     * @example
      *  $.Q.pipe(
      *      $.Q('wait', timeout), // provide a short time to hit cancel
      *      $.Q(getFlight, id, options), // get flight object
      *      $.Q.use(getFlightDetails) // get the details of the flight object
      *  ).done(function(details) {...})
      *
-     * @param {mixed} fn
-     * 
+     * @memberof Chaining
+     * @param {(string|function|promise)} fn    The function to wrap
+     * @returns {function}
      */
     $.Q = function(fn) {
         var args = Array.prototype.slice.call(arguments, 1);
@@ -51,9 +54,17 @@
 
     /**
      * The same as $.Q but it will use the result of the last operation
-     * 
-     * @param {Function} fn 
-     * 
+     * @example
+        function getFileContents(name) {
+            return $.Q.pipe(
+                $.Q(fileSystem.getFile, name), 
+                $.Q.use(fileSystem.read), // this will receive the file object
+                $.Q.use(parseContents)    // this will receive the contents and parse it
+            );
+        }
+     * @memberof Chaining
+     * @param {(string|function|promise)} fn 
+     * @returns {function}
      */
     $.Q.use = function(fn) {
         var args = Array.prototype.slice.call(arguments, 1),
@@ -82,16 +93,17 @@
      *  - function: returns with a wrapper function to call the bound version of the function
      *  - string: $.Q.bound will interpret it as a method of the host object 
      * 
-     * Example:
+     * @example
      *  $.Q.pipe(
      *      $.Q('wait', timeout), // provide a short time to hit cancel
      *      $.Q.bound(Flights, Flights.get, id, options), // calls Flights.get(id, options)
      *      $.Q.bound(Flight, 'details') // calls Flight.details(<result>)
      *  ).done(function(details) {...})
      * 
-     * @param {Object} _this
-     * @param {mixed} fn 
-     * 
+     * @memberof Chaining
+     * @param {Object} _this  The host object of the method
+     * @param {(string|function)} method  the method to call on the host object
+     * @returns {function}
      */
     $.Q.bound = function(_this, fn) {
         var args = Array.prototype.slice.call(arguments, 2);
@@ -106,16 +118,16 @@
     /**
      * Similar to $.Q.bound, but it is using the result of the previous call as the host object
      * 
-     * Example:
+     * @example
      *  $.Q.pipe(
      *      $.Q('wait', timeout), // provide a short time to hit cancel
      *      $.Q.bound(Flights, 'get', id, options), // calls Flights.get, returns with a Flight Object
      *      $.Q.apply('details', options) // calls <result>.details(options)
      *  ).done(function(details) {...})
      * 
-     * @param {Object} _this
-     * @param {mixed} fn 
-     * 
+     * @memberof Chaining
+     * @param {(string|function)} fn  the method or name of the method to call on the result object
+     * @returns {function}
      */
     $.Q.apply = function(fn) {
         var args = Array.prototype.slice.call(arguments, 1);
@@ -130,13 +142,17 @@
     * Result modifiers
     *  - $.Q.not
     *  - $.Q.try + or
+    *
+    * @namespace Modifiers
     */
+    $.Q.try = true;
 
     /**
-     * Modifier - always resolves. If the given promise resolves it forwards the results, 
+     * Always resolves. If the given promise resolves it forwards the results, 
      * on failure it uses the second parameter as a fallback value.
      * Can be used with a second parameter or with the extension .or(...)
      *
+     * @example
      *    $.when(
      *       $.Q.try(promise, 'failed')
      *    ).done(...)
@@ -145,9 +161,10 @@
      *       $.Q.try(promise).or('failed')
      *    ).done(...)
      * 
+     * @memberof Modifiers
      * @param {Promise} promise  the promise to modify
      * @param {Mixed} onError    the value it returns on failure
-     * 
+     * @returns {promise}
      */
     $.Q.try = function(promise, onError) {
         if(typeof(promise) === 'function') {
@@ -174,10 +191,30 @@
     };
 
     /**
-     * Modifier - Inverts the outcome of the promise.
+     * Inverts the outcome of the promise.
      * 
+     * @example
+     * $.when(
+     *       $.Q.someFrom({
+     *           readme  : $.Q.not(fileSystem.getFile('readme.md')),
+     *           licence : $.Q.not(fileSystem.getFile('licence.txt')),
+     *           author  : $.Q.not(fileSystem.getFile('author.txt'))
+     *       }).progress(function(prg) {console.log('checking missing files', parseInt(prg.pct) + '%')})
+     *   ).done(function(missing) {
+     *       if(missing.readme) {
+     *           fileSystem.createFile('readme.md', 'This is a simple test');
+     *       }
+     *       if(missing.licence) {
+     *           fileSystem.createFile('licence.txt', 'GPL 2.0');
+     *       }
+     *       if(missing.author) {
+     *           fileSystem.createFile('author.txt', 'MySelf');
+     *       }
+     *   });
+     *
+     * @memberof Modifiers
      * @param {Promise} promise  the promise to modify
-     * 
+     * @returns {promise}
      */
     $.Q.not = function(promise) {
         var args = Array.prototype.slice.call(arguments, 1);
@@ -200,16 +237,33 @@
 
     /**
     * Workflows
-    *  - $.Q.anyOf
-    *  - $.Q.someOf
-    *  - $.Q.someFrom
-    *  - $.Q.allOf
-    *  - $.Q.pipe
+    * <ul>
+    *   <li> $.Q.anyOf </li>
+    *   <li> $.Q.someOf </li>
+    *   <li> $.Q.someFrom </li>
+    *   <li> $.Q.allOf </li>
+    *   <li> $.Q.pipe </li>
+    * </ul>
+    *
+    * @namespace Workflows
     */
+    $.Q.anyOf = true;
 
     /**
-     * Group modifier - resolves with the first result it gets from the given set of promises.
-     * It can be called with one array or with multiple arguments
+     * Resolves with the first result it gets from the given set of promises.
+     * It can be called with an array of promises or with multiple arguments
+     *
+     * @example
+     *  $.anyOf(
+     *      this.fileSystem.getFile(tmpName), // get the file
+     *      $.Q.pipe(                         // or create it if doesn't exist
+     *          $.Q.not(this.fileSystem.getFile(tmpName)),
+     *          this.fileSystem.createFile(tmpName)
+     *      )
+     *  ).done(function(tmpFile) { ...
+     *
+     * @memberof Workflows
+     * @returns {promise}
      */
     $.Q.anyOf = function(promises) {
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
@@ -244,11 +298,33 @@
     };
 
     /**
-     * Group modifier - resolves if at least on of the given promises resolves. The result will be the 
-     * set of results from the given promises in the original order. The failed ones will have undefined as result.
-     * It can be called with one array or with multiple arguments.
+     * Resolves if at least one of the given promises resolves. The result will be the 
+     * set of results from the given promises in the original order. The failed ones will have 
+     * <i>undefined</i> as result.
+     * <p>It can be called with an array of promises or with multiple arguments.</p>
      *
-     * Important to note that it will wait until all the promises finish.
+     * <p><i>Important to note that it will wait until all the promises finish.</i></p>
+     * 
+     * @example
+     *  filenames = ['readme.md', 'author.txt',..., 'licence.txt'];
+     *
+     *  $.Q.someOf(
+     *      filenames.map(function(fname) { return $.Q.not(fileSystem.exists(fname)); })
+     *  ).done(function(results) {
+     *      results.forEach(function(missing, i) {
+     *          if(missing) {
+     *              fileSystem.createFile(filenames[i]);
+     *          }
+     *      });
+     *  }).fail(function(errors) {
+     *      console.log('all exist', errors);
+     *  }).progress(function(prg) {
+     *      console.log(prg.pct.toPrecision(3) + '% complete');
+     *  });
+     *
+     * @param {object} promises  named map of promises (or functions returning promises)
+     * @memberof Workflows
+     * @returns {promise}
      */
     $.Q.someOf = function(promises) {
         promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
@@ -306,13 +382,32 @@
     };
 
     /**
-     * Group modifier - resolves if at least on of the given promises resolves. The result will be a named map of 
-     * the results from the given promises. The failed ones won't be in the result set at all.
+     * Resolves if at least one of the given promises resolves. The result will be a named map of 
+     * the results from the given promises. The failed ones will get a result <i>undefined</i>.
      *
-     * Important to note that it will wait until all the promises finish.
+     * <p><i>Important to note that it will wait until all the promises finish.</i></p>
      *
-     * @param {Object} names  the promises to listen to
-     * 
+     * @example
+     *  $.Q.someFrom({
+     *          readme  : $.Q.not(fileSystem.exists('readme.md')),
+     *          licence : $.Q.not(fileSystem.exists('licence.txt')),
+     *          author  : $.Q.not(fileSystem.exists('author.txt'))
+     *  }).done(function(missing) {
+     *      if(missing.readme) {
+     *          fileSystem.createFile('readme.md', 'This is a simple test');
+     *      }
+     *      if(missing.licence) {
+     *          fileSystem.createFile('licence.txt', 'GPL 2.0');
+     *      }
+     *      if(missing.author) {
+     *          fileSystem.createFile('author.txt', 'MySelf');
+     *      }
+     *  }).progress(function(prg) {
+     *      console.log(prg.pct.toPrecision(3) + '% complete');
+     *  });
+     *
+     * @memberof Workflows
+     * @returns {promise} 
      */
     $.Q.someFrom = function(names, keepFlow) {
         var promises = [],
@@ -346,8 +441,12 @@
     };
 
     /**
-     * allOf - The same as $.when, but it can accept an array as well and it will try to call
-     * functions to get the promises
+     * The same as $.when, but it can accept an array of promises as well.
+     * It only resolves if all the given promises resolve. 
+     * Jumps to fail as soon as the first promise fails.
+     *
+     * @memberof Workflows
+     * @returns {promise}
      */
     $.Q.allOf = function(tasks) {
         tasks = (tasks instanceof Array) ? tasks : Array.prototype.slice.call(arguments, 0);
@@ -360,13 +459,16 @@
             if(typeof task === 'function') {
                 tasks[i] = task(keepFlow);
             }
-        });
+        }); 
         return $.when.apply($, tasks);
     };
 
 
     /**
      * Pipe
+     *
+     * @memberof Workflows
+     * @returns {promise}
      */
     $.Q.pipe = function() {
         var steps = Array.prototype.slice.call(arguments, 0),
@@ -417,11 +519,14 @@
     *  - $.Q.debug.success
     *  - $.Q.debug.failure
     *  - $.Q.debug.pending
+    *  - $.Q._result
+    *  - isDeferred()
     */
 
     /**
      * Simple async delay function.
      * 
+     *
      * @param {Int} timeout
      * 
      */
@@ -468,135 +573,11 @@
     };
 
     /**
-    * Promise converters
-    *  - $.Q.defer
-    *  - $.Q.deferObject
-    */
-
-    /**
-     * defer - creates a deferred version of an async function with the given parameters
+     * helper to determine if an object is a deferred
      * 
      */
-    $.Q.defer = function(fn) {
-        var args = Array.prototype.slice.call(arguments, 1),
-            dfd = new $.Deferred(),
-            options = {
-                handlesError: undefined,
-                fn: fn,
-                timeout: 500,
-                scope: fn
-            };
+    function isDeferred(obj) {
+        return (typeof obj.done + typeof obj.fail + typeof obj.state).match(/(function){3}/);
+    }
 
-        if(typeof(fn) === 'object') {
-            $.extend(options, fn);
-        }
-
-        // push in extra arguments if needed
-        if(options.fn.length > args.length) {
-            var remaining = options.fn.length - args.length,
-                needed = options.handlesError === undefined || options.handlesError  ? 2 : 1;
-
-            while(remaining > needed) {
-                args.push(undefined);
-                remaining--;
-            }
-        }
-
-        // add success callback
-        if(options.fn.length > args.length) {
-            args.push(function(result) {
-                dfd.resolve(result);
-            });
-        } else {
-            throw new Error('No success callback for method?');
-        }
-        
-        // add error callback
-        if(options.fn.length > args.length) {
-            args.push(function(err) {
-                dfd.reject(err);
-            });
-        } else if(options.handlesError) {
-            throw new Error('No error callback for method?');
-        } else if(options.timeout) {
-            setTimeout(function() {dfd.reject('timeout');}, options.timeout);
-        }
-
-        try {
-            options.fn.apply(options.scope, args);
-        } catch(error) {
-            dfd.reject(error);
-        }
-
-        return dfd.promise();
-    };
-
-    /**
-     * deferObject - creates a deferred version of a typical async object like FileReader or Image
-     * You can access the target object through do/set methods or as the .target propery directly
-     *
-     * @param {Object} target
-     * @param {String} successNames  List of success events divided by spaces
-     * @param {String} errorNames    List of error events divided by spaces
-     */
-    $.Q.deferObject = function(target, successNames, errorNames) {
-        var dfd = new $.Deferred(),
-            progressNames = 'onprogress';
-
-        successNames = successNames || 'onload onloadend';
-        errorNames = errorNames || 'onerror onabort';
-
-        // attach success callbacks
-        successNames.split(/[\s]+/).forEach(function(cb) {
-            target[cb] = function(result) {
-                dfd.resolve(result);
-            };
-        });
-
-        // attach error callbacks
-        errorNames.split(/[\s]+/).forEach(function(cb) {
-            target[cb] = function(err) {
-                dfd.reject(err);
-            };
-        });
-
-        // attach progress callbacks
-        progressNames.split(/[\s]+/).forEach(function(cb) {
-            target[cb] = function(prg) {
-                dfd.progress(prg);
-            };
-        });
-
-        var promise = dfd.promise();
-        promise.target = target;
-        promise.do = function(toDo) {
-            try {
-                for(var method in toDo) {
-                    if(!toDo.hasOwnProperty(method)) {
-                        continue;
-                    }
-                    target[method].apply(target, toDo[method]);
-                }
-            } catch(error) {
-                dfd.reject(error);
-            }
-            return promise;
-        };
-
-        promise.set = function(properties) {
-            try {
-                for(var prop in properties) {
-                    if(!properties.hasOwnProperty(prop)) {
-                        continue;
-                    }
-                    target[prop] = properties[prop];
-                }
-            } catch(error) {
-                dfd.reject(error);
-            }
-            return promise;
-        };
-
-        return promise;
-    };
 })(jQuery);

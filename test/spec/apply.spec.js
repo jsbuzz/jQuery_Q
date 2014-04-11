@@ -31,7 +31,7 @@ describe("$.Q.apply", function() {
                 return this[prop];
             }
         };
-        
+
         expect($.Q.apply('test', 'dfd')(testObj)).toBe(testObj.dfd);
     });
 

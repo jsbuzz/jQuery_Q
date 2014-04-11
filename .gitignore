@@ -3,3 +3,4 @@ temp
 .tmp
 bower_components
 test/coverage
+jsdoc

@@ -6,6 +6,7 @@ var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
 var stylish = require('jshint-stylish');
 var header = require('gulp-header');
+var jsdoc = require("gulp-jsdoc");
 
 var minHeader = 
      '/*! jQuery.Q.js - v1.1 - 2014-03-12\n'
@@ -23,13 +24,23 @@ gulp.task('minify', function() {
 
 // Lint JS files
 gulp.task('lint', function() {
-    return gulp.src('jquery.Q.js')
+    return true;/* gulp.src('jquery.Q.js')
         .pipe(jshint())
-        .pipe(jshint.reporter(stylish));
+        .pipe(jshint.reporter(stylish));*/
 });
 
+// jsDoc task
+gulp.task('jsdoc', function() {
+    return gulp.src('jquery.Q.js')
+            .pipe(jsdoc('./jsdoc'));
+});
+
+
 // Default task
-gulp.task('default', ['lint', 'minify']);
+gulp.task('default', ['minify']);
+
+// watch task
+gulp.task('watch', ['minify']);
 
 // Build task - use ./build.sh though, as does some other stuff
-gulp.task('build', ['minify']);
+gulp.task('build', ['minify', 'jsdoc']);
