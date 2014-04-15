@@ -42,4 +42,27 @@ describe("$.Q.debug", function() {
             expect(testResult).toBe(1);
         });
     });
+
+
+    it("pending is pending forever", function() {
+        runs(function() {
+            testResult = false;
+
+            $.when(
+                $.Q.debug.pending()
+            ).fail(function(result) {
+                testResult = result;
+            });
+
+            setTimeout(function() {testResult = 1}, 50)
+        });
+
+        waitsFor(function() {
+              return testResult;
+        }, "The Value should be true", 100);
+
+        runs(function() {
+            expect(testResult).toBe(1);
+        });
+    });
 });

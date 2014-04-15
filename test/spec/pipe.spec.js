@@ -62,10 +62,6 @@ describe("$.Q.pipe", function() {
         runs(function() {
             testResult = 0;
 
-            function increaseTest(v) {
-                return $.Q.wait(10, 1+v);
-            }
-
             $.Q.pipe(
                 $.Q.debug.success(1),
                 $.Q.use('wait', 1),
@@ -87,4 +83,33 @@ describe("$.Q.pipe", function() {
             expect(progress).toEqual([20, 40, 60, 80, 100]);
         });
     });
+
+    it("progress callback shows all results", function() {
+        var progress= [];
+
+        runs(function() {
+            testResult = 0;
+
+            $.Q.pipe(
+                $.when(
+                    $.Q.debug.success('one'),
+                    $.Q.debug.success('two')
+                ),
+                $.Q.use('wait', 10, 'three')
+            ).progress(function(prg) {
+                progress.push(prg.result);
+            }).done(function() {
+                testResult = 1;
+            })
+        });
+
+        waitsFor(function() {
+              return testResult;
+        }, "The Value should be true", 100);
+
+        runs(function() {
+            expect(progress).toEqual([['one', 'two'], 'three']);
+        });
+    });
+
 });

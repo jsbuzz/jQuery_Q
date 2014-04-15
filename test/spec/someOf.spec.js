@@ -111,4 +111,31 @@ describe("$.Q.someOf", function() {
 
     });
 
+    it("fires progress callbacks", function() {
+        var progress= [];
+
+        runs(function() {
+            testResult = 0;
+
+            $.Q.someOf(
+                $.Q.debug.success(1),
+                $.Q.wait(1),
+                $.Q.wait(2),
+                $.Q.wait(3),
+                $.Q.wait(4)
+            ).progress(function(prg) {
+                progress.push(prg.pct);
+            }).done(function() {
+                testResult = 1;
+            })
+        });
+
+        waitsFor(function() {
+              return testResult;
+        }, "The Value should be true", 100);
+
+        runs(function() {
+            expect(progress).toEqual([20, 40, 60, 80, 100]);
+        });
+    });
 });

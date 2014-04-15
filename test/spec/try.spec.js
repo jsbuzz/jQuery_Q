@@ -41,7 +41,7 @@ describe("$.Q.try", function() {
         });
     });
 
-    it("resolves on fail (with one param + .or() )", function() {
+    it("resolves on failure (with one param + .or() )", function() {
         runs(function() {
             testResult = false;
             $.when(
@@ -62,5 +62,4 @@ describe("$.Q.try", function() {
         });
 
     });
-
 });

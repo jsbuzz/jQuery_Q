@@ -37,10 +37,12 @@ gulp.task('jsdoc', function() {
 
 
 // Default task
-gulp.task('default', ['minify']);
+gulp.task('default', ['minify', 'jsdoc']);
 
 // watch task
-gulp.task('watch', ['minify']);
+gulp.task('watch', ['default'], function() {
+    gulp.watch('jquery.Q.js', ['default']);
+});
 
 // Build task - use ./build.sh though, as does some other stuff
 gulp.task('build', ['minify', 'jsdoc']);

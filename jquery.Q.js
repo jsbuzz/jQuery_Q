@@ -167,12 +167,6 @@
      * @returns {promise}
      */
     $.Q.try = function(promise, onError) {
-        if(typeof(promise) === 'function') {
-            return function() {
-                var args = Array.prototype.slice.call(arguments, 0);
-                return $.Q.try(promise.apply(this, args), onError);
-            };
-        }
         var dfd = new $.Deferred();
 
         // added setTimeout wrapper to move the execution outside of the scope of the $.when(...)
@@ -441,26 +435,55 @@
     };
 
     /**
-     * The same as $.when, but it can accept an array of promises as well.
+     * The same as $.when, but it can accept an array of promises as well and has a default progress watcher.
      * It only resolves if all the given promises resolve. 
      * Jumps to fail as soon as the first promise fails.
      *
      * @memberof Workflows
      * @returns {promise}
      */
-    $.Q.allOf = function(tasks) {
-        tasks = (tasks instanceof Array) ? tasks : Array.prototype.slice.call(arguments, 0);
+    $.Q.allOf = function(promises) {
+        promises = (promises instanceof Array) ? promises : Array.prototype.slice.call(arguments, 0);
         var keepFlow;
 
-        if(tasks.length && tasks[tasks.length - 1] instanceof $.Q._result) {
-            keepFlow = tasks.pop().result;
+        if(promises.length && promises[promises.length - 1] instanceof $.Q._result) {
+            keepFlow = promises.pop().result;
         }
-        tasks.forEach(function(task, i) {
-            if(typeof task === 'function') {
-                tasks[i] = task(keepFlow);
+
+        var results = new Array(promises.length),
+            progress = 0,
+            dfd = new $.Deferred();
+
+        if(!promises.length) {
+            throw new Error('$.Q.allOf called with no parameters');
+        }
+
+        var allAreDone = function() {
+            // notify about the percentage
+            dfd.notify({
+                pct: 100 * (++progress) / promises.length,
+                msg : '',
+                results: results
+            });
+
+            return progress >= promises.length;
+        };
+
+        promises.forEach(function(promise, i) {
+            if(typeof(promise) === 'function') {
+                promise = promise(keepFlow);
             }
-        }); 
-        return $.when.apply($, tasks);
+            promise.done(function(result) {
+                results[i] = result;
+                if(allAreDone()) {
+                    dfd.resolve(results);
+                }
+            }).fail(function(error) {
+                dfd.reject(error);
+            });
+        });
+
+        return dfd.promise();
     };
 
 

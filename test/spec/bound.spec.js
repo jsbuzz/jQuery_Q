@@ -64,4 +64,16 @@ describe("$.Q.bound", function() {
 
     expect(q).toEqual(obj.dfd);
   });
+
+  it("can call functions by name", function() {
+    var obj = {
+            dfd : new $.Deferred(),
+            wrapper : function() {
+                return this.dfd;
+            },
+        },
+        q = $.Q.bound(obj, 'wrapper')();
+
+    expect(q).toEqual(obj.dfd);
+  });
 });

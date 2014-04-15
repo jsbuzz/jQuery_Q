@@ -26,6 +26,31 @@ describe("$.Q.anyOf", function() {
         });
     });
 
+    it("resolves with first success with array", function() {
+        runs(function() {
+            testResult = false;
+            
+            $.when(
+                $.Q.anyOf(
+                    [
+                        $.Q.wait(100),
+                        $.Q.debug.success(1)
+                    ]
+                )
+            ).done(function(res) {
+                testResult = 1;
+            });
+        });
+
+        waitsFor(function() {
+              return testResult;
+        }, "The Value should be true", 50);
+
+        runs(function() {
+            expect(testResult).toBe(1);
+        });
+    });
+
     it("resolves with the exact result of the first success", function() {
         runs(function() {
             testResult = false;
