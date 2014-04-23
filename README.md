@@ -61,3 +61,18 @@ and basic manipulations and abstractions over the promises like *$.Q.not(dfd)*, 
  	).done(function(readme, author, licence) {
  		...
  	})
+
+
+Installation
+============
+With bower:
+	bower install jquery.Q --save-dev
+
+Current version is 1.1.0
+
+
+Tests
+=====
+
+The library is fully tested with Jasmine and has a 100% test coverage:
+[test coverage](http://rawgit.com/jsbuzz/jQuery_Q/master/test/coverage/Chrome%2034.0.1847%20(Windows%207)/jquery.Q.js.html) 
