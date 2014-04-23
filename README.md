@@ -11,21 +11,19 @@ While working with a lot of async calls you can easily end up with a 'when-done'
 	function getFileContents(name) {
 		var dfd = new $.Deferred;
 
-		setTimeout(function() {
+		$.when(
+			fileSystem.getFile(name)
+		).done(function(file) {
 			$.when(
-				fileSystem.getFile(name)
-			).done(function(file) {
-				$.when(
-					fileSystem.read(file)
-				).done(function(contents) {
-					dfd.resolve(contents);
-				}).fail(function(error) {
-					dfd.reject(error)
-				})
+				fileSystem.read(file)
+			).done(function(contents) {
+				dfd.resolve(contents);
 			}).fail(function(error) {
 				dfd.reject(error)
 			})
-		}, 40);
+		}).fail(function(error) {
+			dfd.reject(error)
+		})
 
 		return dfd.promise();
 	}
@@ -35,23 +33,22 @@ With jQuery.Q you have simple workflows like *$.Q.pipe*, *$.Q.anyOf*, *$.Q.someO
 
 	function getFileContents(name) {
 		return $.Q.pipe(
-			$.Q('wait', 40),
-    		$.Q(fileSystem.getFile, name), 
-    		$.Q.use(fileSystem.read)
+    			$.Q(fileSystem.getFile, name), 
+    			$.Q.use(fileSystem.read)
 		);
 	}
 
 
-    $.when(
-        $.Q.someFrom({
-            readme  : getFileContents('readme.md'),
-            licence : getFileContents('licence.txt'),
-            author  : getFileContents('author.txt')
-        })
-    ).done(function(project) {
-    	thid.$node.find('.author').html(project.author || '- no author -');
-    	...
-    });
+	$.when(
+		$.Q.someFrom({
+			readme  : getFileContents('readme.md'),
+			licence : getFileContents('licence.txt'),
+			author  : getFileContents('author.txt')
+		})
+	).done(function(project) {
+		thid.$node.find('.author').html(project.author || '- no author -');
+		...
+	});
 
 
 
