@@ -39,16 +39,17 @@ With jQuery.Q you have simple workflows like *$.Q.pipe*, *$.Q.anyOf*, *$.Q.someO
 	}
 
 
-	$.when(
-		$.Q.someFrom({
-			readme  : getFileContents('readme.md'),
-			licence : getFileContents('licence.txt'),
-			author  : getFileContents('author.txt')
-		})
-	).done(function(project) {
+	$.Q.someFrom({
+		readme  : getFileContents('readme.md'),
+		licence : getFileContents('licence.txt'),
+		author  : getFileContents('author.txt')
+	})
+	.done(function(project) {
 		thid.$node.find('.author').html(project.author || '- no author -');
 		...
-	});
+	})
+	.fail(...) // means all failed
+	.progress(...) // Progress can be easily tracked - you can access the percantage and the results
 
 
 
@@ -66,6 +67,7 @@ and basic manipulations and abstractions over the promises like *$.Q.not(dfd)*, 
 Installation
 ============
 With bower:
+
 	bower install jquery.Q --save-dev
 
 Current version is 1.1.0
