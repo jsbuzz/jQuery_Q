@@ -70,6 +70,11 @@ With bower:
 
 	bower install jquery.Q --save-dev
 
+As a project:
+	git clone https://github.com/jsbuzz/jQuery_Q.git
+	cd jQuery_Q
+	./install.sh
+
 Current version is 1.1.0
 
 
@@ -78,3 +83,6 @@ Tests
 
 The library is fully tested with Jasmine and has a 100% test coverage:
 [test coverage](http://rawgit.com/jsbuzz/jQuery_Q/master/test/coverage/Chrome%2034.0.1847%20(Windows%207)/jquery.Q.js.html) 
+
+After installation you can run the test by calling:
+	./run-tests.sh
